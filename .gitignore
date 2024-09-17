@@ -1,0 +1,11 @@
+*.pyc
+*.csv
+
+# MacOS stuff
+.DS_Store
+
+# pyenv
+.python-version
+
+__pycache__/
+test/
