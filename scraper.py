@@ -1,7 +1,7 @@
 import os
 import time
 from os import listdir
-from os.path import isfile, join
+from os.path import join
 
 import pandas as pd
 import requests
@@ -15,13 +15,30 @@ class Scraper:
         self.base_url = website['base_url']
         self.pagination_delimiter = website['pagination_delimiter']
         self.options = options
-        self.save_folder = website['read_html_folder']
+        self.read_from_folder = website['read_html_folder']
         self._item = []
         self._price = []
 
+        self.urls = self.construct_urls(self.base_url,
+                                        self.options['search_terms'],
+                                        self.pagination_delimiter,
+                                        self.options['how_many_html_pages_to_read'],
+                                        )
+
+    def construct_urls(self, base_url: str, search_terms: list, pagination: str, pages: int = None) -> list:
+        urls = []
+        if pages and pages != 1:
+            for term in search_terms:
+                for i in range(1,pages+1):
+                    urls.append(base_url+term+pagination+str(i))
+        else:
+            urls = [base_url+term for term in search_terms]
+        return urls
+
+
     def scrape(self) -> pd.DataFrame:
         if self.options['read_html_from_folder']:
-            return self.scrape_from_folder(self.save_folder)
+            return self.scrape_from_folder(self.read_from_folder)
         else:
             return self.scrape_from_url()
 
@@ -40,7 +57,7 @@ class Scraper:
 
         names = []
         prices = []
-        unit_costs = []
+        # unit_costs = []
 
         product_name = soup.find_all('span',{'class': 'normal dark-gray mb0 mt1 lh-title f6 f5-l lh-copy'})
         cost_per_unit = soup.find_all('div',{'class': 'gray mr1 f6 f5-l flex items-end mt1'})
