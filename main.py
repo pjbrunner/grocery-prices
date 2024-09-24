@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from scraper import *
 from file_utils import get_json_from_file, make_directory_if_not_exists
 
+
 def get_args():
     parser = argparse.ArgumentParser(description='Get grocery prices from grocery store sites')
     parser.add_argument('-c', '--config', default='config.json',
@@ -19,7 +20,8 @@ def main():
 
     for website in configs['websites']:
         print(website)
-        scraper = Scraper(configs['headers'],
+        scraper = Scraper(website,
+                          configs['headers'],
                           configs['websites'][website],
                           configs['options']
                           )
