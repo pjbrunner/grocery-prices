@@ -6,8 +6,6 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-from file_utils import dir_exists
-
 
 class Scraper:
     def __init__(self, website_name: str, headers: dict, website: dict, options: dict):
@@ -56,9 +54,9 @@ class Scraper:
 
     def scrape_from_file(self, filename: str) -> pd.DataFrame:
         with open(filename, 'r') as f:
-            return self.scrape_from_soup(BeautifulSoup(f, 'lxml'))
+            return self.filter_soup_data(BeautifulSoup(f, 'lxml'))
 
-    def scrape_from_urls(self, urls: list, sleep_time: int) -> list:
+    def scrape_from_urls(self, urls: list, sleep_time: int) -> pd.DataFrame:
         return pd.concat([self.scrape_from_url(url, sleep_time) for url in urls], ignore_index=True)
 
     def scrape_from_url(self, url: str, sleep_time: int) -> pd.DataFrame:
@@ -72,19 +70,37 @@ class Scraper:
             with open(write_path, 'w') as writer:
                 writer.write(soup.prettify())
 
-        dataframe = self.scrape_from_soup(soup)
+        dataframe = self.filter_soup_data(soup)
         print(f'Sleeping {sleep_time} seconds')
         time.sleep(sleep_time)
         return dataframe
 
-    def scrape_from_soup(self, soup: BeautifulSoup) -> pd.DataFrame:
+    def filter_soup_data(self, soup: BeautifulSoup) -> pd.DataFrame:
+        if self.website_name == 'walmart':
+            names, prices, = self.filter_walmart_html(soup)
+        else:
+            raise ValueError(f'Unknown website name: "{self.website_name}"')
+
+        self._item += names                        
+        self._price += prices
+        return pd.DataFrame({'item': self._item, 'price': self._price})
+
+    def filter_walmart_html(self, soup: BeautifulSoup) -> tuple[list,list]:
         names = []
         prices = []
         # unit_costs = []
 
         product_name = soup.find_all('span',{'class': 'normal dark-gray mb0 mt1 lh-title f6 f5-l lh-copy'})
         cost_per_unit = soup.find_all('div',{'class': 'gray mr1 f6 f5-l flex items-end mt1'})
-        price_dollars = soup.find_all('span',{'class': 'f2'})
+
+        price_dollars = []
+        # Filter out tags that have unwanted descendants classes of f2, those would mess up the results and throw a NoneType error down the line.
+        for tag in soup.select('span.f2'):
+            # The class dictionary will have more than one element if f2 isn't the only class.
+            if len(tag['class']) > 1:
+                continue
+            price_dollars.append(tag)
+
         price_cents = soup.find_all('span',{'class': 'f6 f5-l', 'style': 'vertical-align:0.75ex'})
 
         for name, price_dollar, price_cent, unit_cost in zip (product_name, price_dollars, price_cents, cost_per_unit):
@@ -92,6 +108,4 @@ class Scraper:
             prices.append(int(price_dollar.string.strip()) + float('.' + price_cent.string.strip()))
             # unit_costs.append(unit_cost.string.strip())
 
-        self._item += names                        
-        self._price += prices
-        return pd.DataFrame({'item': self._item, 'price': self._price})
+        return names, prices
