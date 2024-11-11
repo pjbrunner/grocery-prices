@@ -78,6 +78,8 @@ class Scraper:
     def filter_soup_data(self, soup: BeautifulSoup) -> pd.DataFrame:
         if self.website_name == 'walmart':
             names, prices, = self.filter_walmart_html(soup)
+        if self.website_name == 'king_soopers':
+            names, prices, = self.filter_king_soopers_html(soup)
         else:
             raise ValueError(f'Unknown website name: "{self.website_name}"')
 
@@ -109,3 +111,31 @@ class Scraper:
             # unit_costs.append(unit_cost.string.strip())
 
         return names, prices
+
+    def filter_king_soopers_html(self, soup: BeautifulSoup) -> tuple[list,list]:
+        names = []
+        prices = []
+
+        product_name = soup.find_all('span',{'class': 'normal dark-gray mb0 mt1 lh-title f6 f5-l lh-copy'})
+        price_dollars = soup.find_all('span',{'class': 'kds-Price-promotional-dropCaps'})
+        price_cents = []
+
+        # Remove all <span> with "screen-reader" class to make it easier to parse cents.
+        for span in soup.find_all('span', {'class': 'screen-reader'}):
+            span.decompose()
+
+        # Remove "$" from cents.
+        for cents in soup.find_all('sup',{'class': 'kds-Price-superscript'}):
+            cents_text = cents.text.strip()
+            if not cents_text.isdecimal():
+                continue
+            price_cents.append(cents_text)
+
+        for price_dollar, price_cent in zip (price_dollars, price_cents):
+            prices.append(round(int(price_dollar.string.strip()) + float('.' + price_cent), 2))
+        # for name, price_dollar, price_cent in zip (product_name, price_dollars, price_cents):
+        #     names.append(name.string.string.strip())
+        #     prices.append(int(price_dollar.string.strip()) + float('.' + price_cent.string.strip()))
+        print(prices)
+
+        return names, [] 
