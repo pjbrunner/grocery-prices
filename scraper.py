@@ -116,7 +116,8 @@ class Scraper:
         names = []
         prices = []
 
-        product_name = soup.find_all('span',{'class': 'normal dark-gray mb0 mt1 lh-title f6 f5-l lh-copy'})
+        # product_name = soup.find_all('span',{'class': 'normal dark-gray mb0 mt1 lh-title f6 f5-l lh-copy'})
+        product_name = soup.find_all('span',{'class': 'kds-Text--l kds-Text--bold text-primary block my-8'})
         price_dollars = soup.find_all('span',{'class': 'kds-Price-promotional-dropCaps'})
         price_cents = []
 
@@ -131,11 +132,8 @@ class Scraper:
                 continue
             price_cents.append(cents_text)
 
-        for price_dollar, price_cent in zip (price_dollars, price_cents):
+        for name, price_dollar, price_cent in zip (product_name, price_dollars, price_cents):
+            names.append(name.string.strip())
             prices.append(round(int(price_dollar.string.strip()) + float('.' + price_cent), 2))
-        # for name, price_dollar, price_cent in zip (product_name, price_dollars, price_cents):
-        #     names.append(name.string.string.strip())
-        #     prices.append(int(price_dollar.string.strip()) + float('.' + price_cent.string.strip()))
-        print(prices)
 
-        return names, [] 
+        return names, prices 
